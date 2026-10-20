@@ -6,7 +6,7 @@ CC=avr-gcc
 OBJCOPY=avr-objcopy
 CFLAGS=-mmcu=$(MCU) -DF_CPU=$(F_CPU) -O2 -g -Wall
 
-SRCS=main.c spi.c usart.c
+SRCS=main.c spi.c usart.c twi.c
 
 all: main.hex
 
