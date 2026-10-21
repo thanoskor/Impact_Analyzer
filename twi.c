@@ -38,7 +38,7 @@ void TWI_Master_Tx_Synchronous(uint8_t slave_addr, uint8_t data) {
         return;
     }
 
-    // writing what we want to send in the TW data reg, 0 -> W
+    // writing the slave addres on the data register along with a 0(W) 
     TWDR = (slave_addr << 1) | 0;
 
     // starting transmition by clearing TWINT (and keeping TWEN set)
@@ -73,4 +73,64 @@ void TWI_Master_Tx_Synchronous(uint8_t slave_addr, uint8_t data) {
 
     // Send STOP condition to release the bus
     TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN);
+}
+
+
+uint8_t TWI_Master_Rx_Synchronous(uint8_t slave_addr) {
+    // Clear TWINT that enables the operation to start
+    // And write the TWSTA to send a start condition
+    // while keeping the TWEN bit set
+    TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
+
+    // wait for start to be sent
+    while (!(TWCR & (1 << TWINT))) ;
+
+    // checking status reg, it must be set to STATUS_START
+    // if not i need to handle the error prob by reseting i2c state (TODO later)
+    if (TWI_STATUS_REG != STATUS_START_SENT) {
+        // send STOP condition to release the bus
+        TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN);
+        USART_Transmit_String("Unexpected TWI STATUS REG (expected STATUS_START_SENT)");
+        return 0;
+    }
+
+    // writing the slave addres on the data register along with a 1(R) 
+    TWDR = (slave_addr << 1) | 1;
+
+    // starting transmition by clearing TWINT (and keeping TWEN set)
+    TWCR = (1 << TWINT) | (1 << TWEN);
+
+    // waiting for the hardware to finish
+    while (!(TWCR & (1 << TWINT))) ;
+
+    // verify state
+    if (TWI_STATUS_REG != STATUS_SLA_R_SENT_ACKED) {
+        // send STOP condition to release the bus
+        TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN);
+        USART_Transmit_String("Unexpected TWI STATUS REG (expected STATUS_SLA_W_ACKED)");
+        return 0;
+    }
+
+    // starting receiving by clearing TWINT (and keeping TWEN set)
+    TWCR = (1 << TWINT) | (1 << TWEN);
+
+    // waiting for the receive to finish
+    while (!(TWCR & (1 << TWINT))) ;
+
+    // verify state
+    if (TWI_STATUS_REG != STATUS_DATA_RECEIVED_NAKED) {
+        // send STOP condition to release the bus
+        TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN);
+        USART_Transmit_String("Unexpected TWI STATUS REG (expected STATUS_DATA_SENT_ACKED)");
+        return 0;
+    }
+
+    // getting data from the data reg
+    uint8_t data = 0;
+    data = TWDR;
+
+    // Send STOP condition to release the bus
+    TWCR = (1 << TWINT) | (1 << TWSTO) | (1 << TWEN);
+
+    return data;
 }
