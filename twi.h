@@ -19,5 +19,6 @@
 
 void TWI_Init(uint8_t internal_pullups);
 void TWI_Write_Read_Transaction_Synchronous(uint8_t slave_addr, uint8_t slave_reg, uint8_t *data, uint8_t len);
+void TWI_Write_Write_Transaction_Synchronous(uint8_t slave_addr, uint8_t slave_reg, const uint8_t *data, uint8_t len);
 
 #endif // TWI_H
